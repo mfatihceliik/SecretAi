@@ -2,6 +2,8 @@
 
 SecretAi is a specialized machine learning project focused on creating high-performance coding assistants through a hybrid data harvesting and fine-tuning pipeline. It leverages state-of-the-art techniques like **Unsloth** for optimized training and a custom filtering mechanism for high-quality dataset synthesis.
 
+![SecretAi Architecture](assets/architecture.png)
+
 ## 🚀 Overview
 
 The primary goal of SecretAi is to transform base LLMs (like Llama 3) into expert coding assistants. This is achieved by:

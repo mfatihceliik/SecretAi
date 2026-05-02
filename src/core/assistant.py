@@ -5,7 +5,7 @@ class SecretAssistant:
     def __init__(self):
         self.rag = RAGEngine()
         
-        print("🚀 Model yükleniyor...")
+        print("🚀 Loading model...")
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name = config_manager.get("paths.output_models", "outputs"),
             max_seq_length = config_manager.get("training.max_seq_length", 2048),
@@ -33,4 +33,4 @@ class SecretAssistant:
 
 if __name__ == "__main__":
     assistant = SecretAssistant()
-    print("🤖 Asistan hazır! Sorunuzu sorun...")
+    print("🤖 Assistant ready! Ask your question...")

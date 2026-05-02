@@ -8,9 +8,9 @@ from src.utils.config_manager import config_manager
 
 class RAGEngine:
     def __init__(self):
-        # GPU var mı kontrol et
+        # Check for GPU
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"[INFO] Embedding cihazı: {self.device.upper()}")
+        print(f"[INFO] Embedding device: {self.device.upper()}")
         
         self.embed_model = SentenceTransformer(config_manager.get('rag.embedding_model', 'all-MiniLM-L6-v2'), device=self.device)
         self.client = chromadb.PersistentClient(path=config_manager.get('paths.chroma_db', 'chroma_db'))
@@ -28,7 +28,7 @@ class RAGEngine:
 
     def index_knowledge_base(self):
         if self.collection.count() > 0:
-            print(f"[INFO] Veritabanında zaten {self.collection.count()} kayıt var. İşlem atlanıyor.")
+            print(f"[INFO] Database already contains {self.collection.count()} records. Skipping indexing.")
             return
 
         json_file = config_manager.get('paths.refined_kb', 'data/refined_kb.json')
@@ -39,7 +39,7 @@ class RAGEngine:
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        print(f"[INFO] {len(data)} döküman parçalanıyor ve hazırlanıyor...")
+        print(f"[INFO] Chunking and preparing {len(data)} documents...")
         
         all_texts = []
         all_metadatas = []
@@ -57,7 +57,7 @@ class RAGEngine:
                 })
                 all_ids.append(f"id_{i}_{j}")
 
-        print(f"[INFO] {len(all_texts)} parça vektörleniyor ve DB'ye ekleniyor...")
+        print(f"[INFO] Vectorizing and adding {len(all_texts)} chunks to DB...")
         
         batch_size = 128
         for i in tqdm(range(0, len(all_texts), batch_size), desc="Indexing"):
@@ -72,7 +72,7 @@ class RAGEngine:
                 ids=all_ids[i:end]
             )
         
-        print(f"[SUCCESS] İndeksleme tamamlandı! Toplam: {self.collection.count()} kayıt.")
+        print(f"[SUCCESS] Indexing completed! Total: {self.collection.count()} records.")
 
     def search(self, query, category=None):
         emb = self.embed_model.encode(query).tolist()

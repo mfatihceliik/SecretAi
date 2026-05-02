@@ -2,7 +2,7 @@ import glob
 import os
 
 def merge_jsonl(output_filename="data/secret_ai_final_massive_dataset.jsonl"):
-    # data/stack_*.jsonl ve magicoder_logic.jsonl dosyalarını bul
+    # Find data/stack_*.jsonl and magicoder_logic.jsonl files
     files = glob.glob("data/stack_*.jsonl")
     if os.path.exists("data/magicoder_logic.jsonl"):
         files.append("data/magicoder_logic.jsonl")

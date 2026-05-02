@@ -17,7 +17,7 @@ def main():
             loader.save_dataset(magic_dataset, "data/magicoder_logic.jsonl")
 
     if args.type in ["stack", "both"]:
-        # Artık loader kendi içinde dilleri tek tek kaydediyor
+        # The loader now handles individual language saves internally
         loader.harvest_stack_v2(samples_per_lang=args.per_lang)
 
     print("\n[FINISHED]")

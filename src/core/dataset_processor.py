@@ -16,7 +16,7 @@ class DatasetProcessor:
         # Filter by language-specific modern libraries
         specific_keywords = lang_config.get("modern_libraries", [])
         
-        # En az bir anahtar kelime geçiyor mu?
+        # Check if at least one keyword is present
         score = sum(1 for kw in specific_keywords if kw.lower() in code)
 
         # Basic quality checks

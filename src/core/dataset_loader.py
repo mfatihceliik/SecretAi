@@ -17,7 +17,7 @@ class SecretAiDatasetLoader:
         self.tokenizer = tokenizer
         self.processor = DatasetProcessor()
         self.hf_token = os.getenv("HF_TOKEN")
-        # Bağlantı kararlılığı için pool kapasitesini ayarlıyoruz ve zaman aşımı ekliyoruz
+        # Increase pool capacity and add timeouts for connection stability
         self.s3_config = Config(
             signature_version=UNSIGNED, 
             max_pool_connections=20,
@@ -36,18 +36,18 @@ class SecretAiDatasetLoader:
         except Exception: return None
 
     def process_stack_example(self, example, lang_name):
-        """Bu fonksiyon artık thread-safe olarak paralel çalışacak"""
+        """This function will now run in parallel as thread-safe"""
         code = self._download_s3_content(example.get("blob_id"), example.get("src_encoding"))
         if not code or len(str(code)) < 500: return None
         
-        # Processor'ın filter kısımları thread-safe'dir
+        # Processor's filter sections are thread-safe
         example["content"] = code
         if not self.processor.is_good_code(example, lang_name): return None
             
         return self.processor.format_sample(code, lang_name)
 
     def harvest_stack_v2(self, samples_per_lang=20000):
-        """Her dili ayrı dosyaya hasat eder"""
+        """Harvests each language into a separate file"""
         languages = self.processor.config_manager.languages
         print(f"--- SecretAi RESILIENT HARVESTER (Stack-v2) ---")
         
@@ -57,9 +57,9 @@ class SecretAiDatasetLoader:
             lang_name = lang_cfg["name"]
             output_path = f"data/stack_{lang_name}.jsonl"
             
-            # Eğer bu dil zaten varsa atla (Zaman kazanmak için)
+            # Skip if this language already exists (to save time)
             if os.path.exists(output_path):
-                print(f"\n[i] {lang_name} zaten mevcut, atlanıyor: {output_path}")
+                print(f"\n[i] {lang_name} already exists, skipping: {output_path}")
                 continue
 
             print(f"\n[🚀] Harvesting {lang_name} into {output_path}...")
@@ -100,14 +100,14 @@ class SecretAiDatasetLoader:
 
                 pbar.close()
                 
-                # Sadece bu dili kaydet
+                # Save only this language
                 if lang_samples:
                     self.save_dataset(Dataset.from_list(lang_samples), output_path)
                 
             except Exception as e:
-                print(f"[!] {lang_name} hatası: {e}")
+                print(f"[!] {lang_name} error: {e}")
 
-        return None # Artık toplu dataset döndürmüyoruz
+        return None # We no longer return a collective dataset
 
     def harvest_magicoder(self, limit=110000):
         print(f"\n[🌟] Harvesting Magicoder-Evol (Logic Base)...")
@@ -124,7 +124,7 @@ class SecretAiDatasetLoader:
             pbar.close()
             return Dataset.from_list(all_samples)
         except Exception as e:
-            print(f"[!] Magicoder hatası: {e}")
+            print(f"[!] Magicoder error: {e}")
             return None
 
     def save_dataset(self, dataset, path):

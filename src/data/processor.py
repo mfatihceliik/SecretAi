@@ -58,8 +58,8 @@ def refine_dataset():
             
         chunks = chunk_text(clean_content, limit=600)
         
-        # --- KATEGORİ DÜZELTME ---
-        # Eğer kategori 'Kotlin' ise bunu 'Android'e taşıyoruz (Yapıyı bozmamak için)
+        # --- CATEGORY REFINEMENT ---
+        # If category is 'Kotlin', we move it to 'Android' (to maintain structure)
         category = doc["category"]
         if category == "Kotlin":
             category = "Android"
@@ -70,7 +70,7 @@ def refine_dataset():
                 code_snippet = doc["code_snippets"][0]
             
             refined_data.append({
-                "category": category, # Artık sadece Android veya Backend
+                "category": category, # Now only Android or Backend
                 "topic": doc["topic"],
                 "content": chunk,
                 "code": code_snippet,

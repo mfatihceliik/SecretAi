@@ -13,7 +13,7 @@ if sys.platform == "win32":
     import codecs
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
-# --- BACKEND VE ANDROID ZENGİNLEŞTİRME HEDEFLERİ ---
+# --- BACKEND AND ANDROID ENRICHMENT TARGETS ---
 HARVEST_SEEDS = {
     "Backend": [
         # Python
@@ -89,16 +89,16 @@ def scrape_page(url_and_cat):
 
 def run_backend_powerup():
     all_tasks = []
-    print("🔍 Yeni Backend ve Android linkleri toplanıyor...")
+    print("🔍 Collecting new Backend and Android links...")
     for category, seeds in HARVEST_SEEDS.items():
         for seed in seeds:
             links = get_links_shallow(seed)
-            # Backend için daha fazla sayfa çekelim (Zenginleştirmek için)
+            # Fetch more pages for Backend (for enrichment)
             limit = 60 if category == "Backend" else 30
             for link in links[:limit]:
                 all_tasks.append((link, category))
     
-    print(f"🚀 Toplam {len(all_tasks)} yeni sayfa için paralel madencilik başlıyor...")
+    print(f"🚀 Starting parallel mining for {len(all_tasks)} new pages...")
     
     new_data = []
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -106,7 +106,7 @@ def run_backend_powerup():
         for res in results:
             if res: new_data.append(res)
             
-    # Mevcut dosyayı oku ve üzerine ekle (Append logic)
+    # Read existing file and append (Append logic)
     master_file = config_manager.get('paths.raw_data', 'data/knowledge_base_massive.json')
     if os.path.exists(master_file):
         with open(master_file, 'r', encoding='utf-8') as f:

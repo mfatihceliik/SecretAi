@@ -9,35 +9,35 @@ def main():
 
     args = parser.parse_args()
 
-    # --- MODÜLLERİ SADECE İHTİYAÇ ANINDA YÜKLE (Lazy Loading) ---
+    # --- LAZY LOADING MODULES ---
     if args.mode == "index":
         from src.core.rag_engine import RAGEngine
-        print("[INFO] RAG Indeksleme başlatılıyor (CPU/GPU uyumlu)...")
+        print("[INFO] Starting RAG indexing (CPU/GPU compatible)...")
         engine = RAGEngine()
         engine.index_knowledge_base()
     
     elif args.mode == "train":
         try:
             from src.training.trainer import main as run_train
-            print("[INFO] Model Eğitimi başlatılıyor (GPU GEREKLİ)...")
+            print("[INFO] Starting Model Training (GPU REQUIRED)...")
             run_train()
         except NotImplementedError:
-            print("[ERROR] HATA: Unsloth bir GPU bulamadı. Eğitim için NVIDIA GPU ve CUDA gereklidir.")
+            print("[ERROR] ERROR: Unsloth could not find a GPU. NVIDIA GPU and CUDA are required for training.")
         except Exception as e:
-            print(f"[ERROR] Eğitim hatası: {e}")
+            print(f"[ERROR] Training error: {e}")
         
     elif args.mode == "chat":
-        print("[INFO] Asistan Başlatılıyor...")
+        print("[INFO] Starting Assistant...")
         try:
             from src.core.assistant import SecretAssistant
             bot = SecretAssistant()
             while True:
-                q = input("\n[USER] Sen: ")
-                if q.lower() in ["exit", "quit", "çık"]: break
+                q = input("\n[USER] You: ")
+                if q.lower() in ["exit", "quit", "exit"]: break
                 print(f"\n[AI] SecretAi:\n{bot.generate_response(q)}")
         except Exception as e:
-            print(f"[ERROR] Hata: {e}")
-            print("İpucu: Eğer GPU yoksa 'config.yaml' içindeki model yolunu ana modelle değiştirin veya eğitimi GPU'lu bir makinede tamamlayın.")
+            print(f"[ERROR] Error: {e}")
+            print("Tip: If you don't have a GPU, change the model path in 'config.yaml' to the base model or complete training on a GPU machine.")
 
 if __name__ == "__main__":
     main()
