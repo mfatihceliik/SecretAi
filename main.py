@@ -5,7 +5,7 @@ from src.utils.config_manager import config_manager
 class SecretAiApp:
     """
     Main Application class for SecretAi.
-    Orchestrates different modes of operation: indexing, training, and chatting.
+    Orchestrates different modes of operation: indexing, training, chatting, harvesting, and generation.
     """
     def __init__(self):
         self.parser = self._setup_args()
@@ -16,9 +16,9 @@ class SecretAiApp:
         parser.add_argument(
             "--mode", 
             type=str, 
-            choices=["index", "train", "chat", "harvest"], 
+            choices=["index", "train", "chat", "harvest", "generate"], 
             default="chat",
-            help="Operation mode: index (RAG), train (LLM Fine-tune), chat (Interact), harvest (Scrape Docs)"
+            help="Operation mode: index (RAG), train (LLM Fine-tune), chat (Interact), harvest (Scrape Docs), generate (Synth Dataset)"
         )
         return parser
 
@@ -30,9 +30,12 @@ class SecretAiApp:
 
     def run_train(self):
         try:
-            from src.training.trainer import main as run_train
+            from src.training.secret_ai_trainer import SecretAiTrainer
             print("[INFO] Starting Model Training (GPU REQUIRED)...")
-            run_train()
+            trainer = SecretAiTrainer()
+            trainer.train()
+        except ImportError as e:
+            print(f"[ERROR] Import error: {e}. Ensure all dependencies (Unsloth, etc.) are installed.")
         except NotImplementedError:
             print("[ERROR] Unsloth could not find a GPU. NVIDIA GPU and CUDA are required for training.")
         except Exception as e:
@@ -41,7 +44,7 @@ class SecretAiApp:
     def run_chat(self):
         print("[INFO] Starting Assistant...")
         try:
-            from src.core.assistant import SecretAssistant
+            from src.core.secret_assistant import SecretAssistant
             bot = SecretAssistant()
             print("\n" + "="*50)
             print("SecretAi Assistant is ready. Type 'exit' to quit.")
@@ -58,10 +61,16 @@ class SecretAiApp:
             print("Tip: Ensure the model path in 'config/config.yaml' points to your fine-tuned weights.")
 
     def run_harvest(self):
-        from src.data.harvester import KnowledgeHarvester
-        print("[INFO] Starting Knowledge Harvesting...")
+        from src.data.knowledge_harvester import KnowledgeHarvester
+        print("[INFO] Starting Knowledge Harvesting (Documentation Scraping)...")
         harvester = KnowledgeHarvester()
         harvester.run()
+
+    def run_generate(self):
+        from src.data.dataset_generator import DatasetGenerator
+        print("[INFO] Starting Dataset Generation (Stack v2 & Magicoder)...")
+        generator = DatasetGenerator()
+        generator.generate(mode="both")
 
     def start(self):
         args = self.parser.parse_args()
@@ -74,6 +83,8 @@ class SecretAiApp:
             self.run_chat()
         elif args.mode == "harvest":
             self.run_harvest()
+        elif args.mode == "generate":
+            self.run_generate()
 
 if __name__ == "__main__":
     app = SecretAiApp()

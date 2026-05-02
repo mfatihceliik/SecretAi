@@ -1,5 +1,9 @@
 # SecretAi Global Configuration
 
+categories:
+  primary: "Backend"
+  secondary: "Android"
+
 paths:
   raw_data: "data/raw_data.json"
   refined_kb: "data/refined_kb.json"
@@ -18,11 +22,42 @@ training:
   max_seq_length: 2048
   lora_r: 32
   lora_alpha: 32
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
   batch_size: 2
   grad_accum_steps: 4
   learning_rate: 0.0002
-  max_steps: 5000
+  max_steps: 60
+  warmup_steps: 5
+  weight_decay: 0.01
+  optim: "adamw_8bit"
+  lr_scheduler_type: "linear"
+  seed: 3407
 
-assistant:
-  temperature: 0.7
-  max_new_tokens: 500
+processing:
+  min_content_length: 150
+  min_code_lines: 10
+  noise_patterns:
+    - 'Stay organized with collections.*?\.'
+    - 'Save and categorize content based on your preferences\.'
+    - 'Added in [\d\.]+'
+    - 'Artifact: [\w\.\:]+'
+    - 'View Source'
+    - 'Kotlin \| Java'
+    - 'Public functions'
+    - 'Parameters <T>.*?\n'
+    - 'Throws .*?\n'
+
+prompts:
+  assistant:
+    system: "You are a senior expert software engineer. Use the context below to answer the user query."
+    template: "### System:\n{system_prompt}\n\n### Context:\n{context}\n\n### Instruction:\n{query}\n\n### Response:\n"
+  dataset:
+    system: "You are a senior expert software engineer specializing in {lang_name}, mobile development (Android), and high-performance backend systems. You always follow SOLID principles and modern best practices."
+    template: "### System:\n{system_prompt}\n\n### Instruction:\n{instruction}\n\n### Code:\n{code}\n\n### Response:\n"

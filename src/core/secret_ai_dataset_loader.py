@@ -1,6 +1,9 @@
 from datasets import load_dataset, Dataset
+from typing import Optional
 from tqdm.auto import tqdm
 from .dataset_processor import DatasetProcessor
+from .models import TrainingSample
+from src.utils.config_manager import config_manager
 from dotenv import load_dotenv
 import os
 import boto3
@@ -13,11 +16,16 @@ from threading import Lock
 load_dotenv()
 
 class SecretAiDatasetLoader:
+    """
+    SecretAiDatasetLoader handles downloading and preparing datasets,
+    driven by configuration settings.
+    """
     def __init__(self, tokenizer=None):
+        self.config = config_manager
         self.tokenizer = tokenizer
         self.processor = DatasetProcessor()
         self.hf_token = os.getenv("HF_TOKEN")
-        # Increase pool capacity and add timeouts for connection stability
+        
         self.s3_config = Config(
             signature_version=UNSIGNED, 
             max_pool_connections=20,
@@ -35,20 +43,17 @@ class SecretAiDatasetLoader:
                 return fin.read().decode(encoding or "utf-8", errors="ignore")
         except Exception: return None
 
-    def process_stack_example(self, example, lang_name):
-        """This function will now run in parallel as thread-safe"""
+    def process_stack_example(self, example, lang_name) -> Optional[TrainingSample]:
         code = self._download_s3_content(example.get("blob_id"), example.get("src_encoding"))
         if not code or len(str(code)) < 500: return None
         
-        # Processor's filter sections are thread-safe
         example["content"] = code
         if not self.processor.is_good_code(example, lang_name): return None
             
-        return self.processor.format_sample(code, lang_name)
+        return self.processor.format_sample(code, lang_name, tokenizer=self.tokenizer)
 
     def harvest_stack_v2(self, samples_per_lang=20000):
-        """Harvests each language into a separate file"""
-        languages = self.processor.config_manager.languages
+        languages = self.processor.lang_config_manager.languages
         print(f"--- SecretAi RESILIENT HARVESTER (Stack-v2) ---")
         
         max_workers = 10 
@@ -57,18 +62,17 @@ class SecretAiDatasetLoader:
             lang_name = lang_cfg["name"]
             output_path = f"data/stack_{lang_name}.jsonl"
             
-            # Skip if this language already exists (to save time)
             if os.path.exists(output_path):
-                print(f"\n[i] {lang_name} already exists, skipping: {output_path}")
+                print(f"[INFO] {lang_name} already exists, skipping: {output_path}")
                 continue
 
-            print(f"\n[🚀] Harvesting {lang_name} into {output_path}...")
+            print(f"[🚀] Harvesting {lang_name}...")
             
             try:
                 subset_stream = load_dataset("bigcode/the-stack-v2", name=lang_name, split="train", streaming=True, token=self.hf_token)
                 lang_samples = []
                 scanned_count = 0
-                pbar = tqdm(total=samples_per_lang, desc=f"Collecting {lang_name}", unit=" file")
+                pbar = tqdm(total=samples_per_lang, desc=f"Collecting {lang_name}")
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                     futures = set()
@@ -85,13 +89,12 @@ class SecretAiDatasetLoader:
                         done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
                         
                         for future in done:
-                            processed = future.result()
-                            if processed:
-                                lang_samples.append(processed)
+                            processed_sample = future.result()
+                            if processed_sample:
+                                lang_samples.append(processed_sample.to_dict())
                                 pbar.update(1)
-                                pbar.set_postfix({"scanned": scanned_count})
                             
-                            if len(lang_samples) < samples_per_lang and scanned_count < 2000000:
+                            if len(lang_samples) < samples_per_lang and scanned_count < 1000000:
                                 try:
                                     ex = next(stream_iter)
                                     futures.add(executor.submit(self.process_stack_example, ex, lang_name))
@@ -100,26 +103,32 @@ class SecretAiDatasetLoader:
 
                 pbar.close()
                 
-                # Save only this language
                 if lang_samples:
                     self.save_dataset(Dataset.from_list(lang_samples), output_path)
                 
             except Exception as e:
                 print(f"[!] {lang_name} error: {e}")
 
-        return None # We no longer return a collective dataset
-
     def harvest_magicoder(self, limit=110000):
-        print(f"\n[🌟] Harvesting Magicoder-Evol (Logic Base)...")
+        print(f"[🌟] Harvesting Magicoder-Evol...")
         try:
             magic_ds = load_dataset("ise-uiuc/Magicoder-Evol-Instruct-110K", split="train", streaming=True)
             all_samples = []
-            pbar = tqdm(total=limit, desc="Collecting Logic", unit=" sample")
+            pbar = tqdm(total=limit, desc="Logic Extraction")
             for ex in magic_ds:
                 if len(all_samples) >= limit: break
-                all_samples.append({
-                    "text": f"### Instruction:\n{ex['instruction']}\n\n### Response:\n{ex['response']}"
-                })
+                
+                # Fetch system prompt and template for dataset logic if needed, 
+                # but Magicoder is usually instruction-response.
+                # Using our custom template for consistency:
+                instruction = ex['instruction']
+                response = ex['response']
+                
+                # We can wrap it in our standard format if we want, or keep it simple
+                # Here we just keep the instruction-response pair
+                sample = TrainingSample(text=f"### Instruction:\n{instruction}\n\n### Response:\n{response}")
+                
+                all_samples.append(sample.to_dict())
                 pbar.update(1)
             pbar.close()
             return Dataset.from_list(all_samples)
@@ -131,4 +140,4 @@ class SecretAiDatasetLoader:
         if not dataset or len(dataset) == 0: return
         os.makedirs(os.path.dirname(path), exist_ok=True)
         dataset.to_json(path, orient="records", lines=True, force_ascii=False)
-        print(f"[SUCCESS] Saved: {path} ({len(dataset)} items)")
+        print(f"[SUCCESS] Saved {len(dataset)} items to {path}")

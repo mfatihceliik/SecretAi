@@ -1,5 +1,10 @@
+try:
+    from unsloth import FastLanguageModel
+except ImportError:
+    FastLanguageModel = None
+
 from src.core.model_factory import ModelFactory
-from src.core.dataset_loader import SecretAiDatasetLoader
+from src.core.secret_ai_dataset_loader import SecretAiDatasetLoader
 from src.utils.config_manager import config_manager
 from trl import SFTTrainer
 from transformers import TrainingArguments
@@ -10,15 +15,15 @@ from datasets import load_dataset
 
 class SecretAiTrainer:
     """
-    SecretAiTrainer encapsulates the fine-tuning logic for the LLM.
-    It manages model loading, dataset preparation, and the training loop.
+    SecretAiTrainer encapsulates the fine-tuning logic for the LLM,
+    fully driven by hyperparameters defined in the configuration.
     """
     def __init__(self):
         self.config = config_manager
-        self.output_dir = self.config.get("paths.output_models", "outputs")
+        self.output_dir = self.config.get("paths.output_models", "models/assistant")
 
     def _load_train_dataset(self, tokenizer):
-        dataset_path = self.config.get("paths.refined_kb", "data/secret_ai_final_massive_dataset.jsonl")
+        dataset_path = self.config.get("paths.refined_kb", "data/refined_kb.json")
         
         if os.path.exists(dataset_path):
             print(f"[INFO] Loading pre-processed dataset from {dataset_path}...")
@@ -26,12 +31,11 @@ class SecretAiTrainer:
         else:
             print("[INFO] Local dataset not found. Fetching from Hugging Face...")
             loader = SecretAiDatasetLoader(tokenizer)
-            # Default to a safe limit if local file is missing
-            return loader.load_and_prepare(max_samples=2000)
+            return loader.harvest_magicoder(limit=2000)
 
     def train(self):
         """
-        Executes the full training pipeline.
+        Executes the full training pipeline with parameters from config.yaml.
         """
         # 1. Initialize Model & Tokenizer
         model, tokenizer = ModelFactory.create_model_and_tokenizer()
@@ -39,22 +43,22 @@ class SecretAiTrainer:
         # 2. Prepare Dataset
         train_dataset = self._load_train_dataset(tokenizer)
 
-        # 3. Configure Trainer
+        # 3. Configure Trainer with exhaustive config-driven arguments
         training_args = TrainingArguments(
             per_device_train_batch_size = self.config.get("training.batch_size", 2),
             gradient_accumulation_steps = self.config.get("training.grad_accum_steps", 4),
-            warmup_steps = 5,
+            warmup_steps = self.config.get("training.warmup_steps", 5),
             max_steps = self.config.get("training.max_steps", 60),
             learning_rate = self.config.get("training.learning_rate", 2e-4),
             fp16 = not is_bfloat16_supported(),
             bf16 = is_bfloat16_supported(),
             logging_steps = 1,
-            optim = "adamw_8bit",
-            weight_decay = 0.01,
-            lr_scheduler_type = "linear",
-            seed = 3407,
+            optim = self.config.get("training.optim", "adamw_8bit"),
+            weight_decay = self.config.get("training.weight_decay", 0.01),
+            lr_scheduler_type = self.config.get("training.lr_scheduler_type", "linear"),
+            seed = self.config.get("training.seed", 3407),
             output_dir = self.output_dir,
-            save_strategy = "no", # We save manually at the end
+            save_strategy = "no",
         )
 
         trainer = SFTTrainer(
@@ -68,17 +72,14 @@ class SecretAiTrainer:
             args = training_args,
         )
 
-        # 4. Execute Training
-        print("[INFO] Starting training...")
-        trainer_stats = trainer.train()
+        print("[INFO] Starting training with configuration parameters...")
+        trainer.train()
         
-        # 5. Save Model and Tokenizer
-        print(f"[INFO] Saving model to {self.output_dir}...")
+        print(f"[INFO] Saving weights to {self.output_dir}...")
         model.save_pretrained(self.output_dir)
         tokenizer.save_pretrained(self.output_dir)
         
-        print(f"[SUCCESS] Training completed in {trainer_stats.metrics['train_runtime']:.2f} seconds.")
-        print(f"[INFO] Weights saved to: {os.path.abspath(self.output_dir)}")
+        print(f"[SUCCESS] Training completed successfully.")
 
 def main():
     trainer = SecretAiTrainer()

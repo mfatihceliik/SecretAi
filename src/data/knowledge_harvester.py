@@ -9,6 +9,7 @@ import yaml
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 from src.utils.config_manager import config_manager
+from src.core.models import ScrapedPage
 
 class KnowledgeHarvester:
     """
@@ -19,6 +20,11 @@ class KnowledgeHarvester:
         self.config = config_manager
         self.seeds_path = self.config.get('paths.harvest_seeds', 'config/harvest_seeds.yaml')
         self.seeds = self._load_seeds()
+        
+        # Load categories from config
+        self.primary_cat = self.config.get('categories.primary', 'Backend')
+        self.secondary_cat = self.config.get('categories.secondary', 'Android')
+        
         self._setup_output_encoding()
 
     def _setup_output_encoding(self):
@@ -51,7 +57,7 @@ class KnowledgeHarvester:
             print(f"[ERROR] Failed to get links from {base_url}: {e}")
             return []
 
-    def _scrape_page(self, task):
+    def _scrape_page(self, task) -> ScrapedPage:
         url, category = task
         try:
             res = requests.get(url, timeout=10)
@@ -66,13 +72,13 @@ class KnowledgeHarvester:
             # Extract basic code snippets
             code_snippets = [code.get_text() for code in soup.find_all('code') if len(code.get_text()) > 20]
             
-            return {
-                "category": category,
-                "topic": soup.title.string if soup.title else "Technical Doc",
-                "content": content,
-                "code_snippets": code_snippets[:3],
-                "source": url
-            }
+            return ScrapedPage(
+                category=category,
+                topic=soup.title.string if soup.title else "Technical Doc",
+                content=content,
+                code_snippets=code_snippets[:3],
+                source=url
+            )
         except Exception:
             return None
 
@@ -87,7 +93,8 @@ class KnowledgeHarvester:
             for seed in seeds:
                 links = self._get_links_shallow(seed)
                 # Apply limits based on category for balanced enrichment
-                limit = 60 if category == "Backend" else 30
+                # Using config-driven logic for limits too would be better, but category check is now safer
+                limit = 60 if category == self.primary_cat else 30
                 for link in links[:limit]:
                     all_tasks.append((link, category))
         
@@ -97,7 +104,8 @@ class KnowledgeHarvester:
         with ThreadPoolExecutor(max_workers=10) as executor:
             results = list(executor.map(self._scrape_page, all_tasks))
             for res in results:
-                if res: new_data.append(res)
+                if res:
+                    new_data.append(res.to_dict())
                 
         # Append to the master knowledge base file
         master_file = self.config.get('paths.raw_data', 'data/knowledge_base_massive.json')
