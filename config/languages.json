@@ -1,0 +1,97 @@
+{
+  "languages": [
+    {
+      "name": "Kotlin",
+      "extensions": [".kt", ".kts"],
+      "modern_libraries": [
+        "androidx.compose",
+        "compose.material3",
+        "compose.ui",
+        "viewmodel",
+        "stateflow",
+        "sharedflow",
+        "dagger.hilt",
+        "@inject",
+        "kotlinx.coroutines",
+        "suspend fun",
+        "retrofit2",
+        "okhttp3",
+        "ktor",
+        "room",
+        "coil",
+        "navigation-compose"
+      ],
+      "instruction_templates": {
+        "compose": "Implement a modern Jetpack Compose UI for '{name}' using Material 3 and best practices.",
+        "viewmodel": "Create an Android ViewModel for '{name}' using StateFlow and clean architecture principles.",
+        "retrofit": "Define a Retrofit API service interface for '{name}' with proper error handling.",
+        "hilt": "Setup Dagger-Hilt dependency injection for '{name}' in an Android context."
+      }
+    },
+    {
+      "name": "Java",
+      "extensions": [".java"],
+      "modern_libraries": [
+        "springframework.boot",
+        "spring web",
+        "spring data",
+        "jpa",
+        "hibernate",
+        "junit5",
+        "lombok",
+        "mapstruct"
+      ],
+      "instruction_templates": {
+        "spring": "Build a high-performance Spring Boot REST Controller/Service for '{name}' using modern Java practices.",
+        "jpa": "Create a JPA Entity and Repository for '{name}' with proper indexing and relationships."
+      }
+    },
+    {
+      "name": "Python",
+      "extensions": [".py"],
+      "modern_libraries": [
+        "fastapi",
+        "pydantic",
+        "sqlalchemy",
+        "uvicorn",
+        "asyncio",
+        "pytest",
+        "pandas",
+        "numpy",
+        "pytorch",
+        "tensorflow"
+      ],
+      "instruction_templates": {
+        "fastapi": "Develop a production-ready FastAPI endpoint for '{name}' with Pydantic validation and async support.",
+        "pydantic": "Define a robust Pydantic model for '{name}' with complex field validations.",
+        "torch": "Implement a machine learning module for '{name}' using PyTorch best practices."
+      }
+    },
+    {
+      "name": "JavaScript",
+      "extensions": [".js", ".jsx", ".ts", ".tsx"],
+      "modern_libraries": [
+        "express",
+        "nestjs",
+        "prisma",
+        "nextjs",
+        "react",
+        "typescript",
+        "@nestjs/common",
+        "typeorm"
+      ],
+      "instruction_templates": {
+        "nestjs": "Create a modular NestJS Service/Controller for '{name}' using decorators and dependency injection.",
+        "react": "Build a responsive React functional component for '{name}' using Hooks and Tailwind CSS.",
+        "prisma": "Setup a Prisma schema and service for '{name}' with efficient database queries."
+      }
+    }
+  ],
+  "global_keywords": [
+    "clean architecture",
+    "solid principles",
+    "design patterns",
+    "refactor",
+    "optimization"
+  ]
+}
