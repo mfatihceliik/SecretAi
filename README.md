@@ -57,9 +57,10 @@ paths:
 2. **Setup Environment**:
    Create a `.env` file with your `HF_TOKEN`.
 3. **Run the Application**:
-   - To Train: `python main.py --mode train`
-   - To Chat: `python main.py --mode chat`
-   - To Index: `python main.py --mode index`
+   - **Chat Mode**: `python main.py --mode chat`
+   - **Train Mode**: `python main.py --mode train`
+   - **Index Mode**: `python main.py --mode index`
+   - **Harvest Mode**: `python main.py --mode harvest`
 
 ---
 *Developed by M. Fatih Çelik as part of the SecretAi Research Initiative.*

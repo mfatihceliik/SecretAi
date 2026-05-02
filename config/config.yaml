@@ -5,6 +5,7 @@ paths:
   refined_kb: "data/refined_kb.json"
   chroma_db: "chroma_db"
   output_models: "models/assistant"
+  harvest_seeds: "config/harvest_seeds.yaml"
 
 rag:
   embedding_model: "all-MiniLM-L6-v2"

@@ -8,36 +8,44 @@ import torch
 import os
 from datasets import load_dataset
 
-def main():
-    # 1. Model & Tokenizer
-    model, tokenizer = ModelFactory.create_model_and_tokenizer()
+class SecretAiTrainer:
+    """
+    SecretAiTrainer encapsulates the fine-tuning logic for the LLM.
+    It manages model loading, dataset preparation, and the training loop.
+    """
+    def __init__(self):
+        self.config = config_manager
+        self.output_dir = self.config.get("paths.output_models", "outputs")
 
-    # 2. Dataset Loading
-    dataset_path = config_manager.get("paths.refined_kb", "data/secret_ai_final_massive_dataset.jsonl")
-    
-    if os.path.exists(dataset_path):
-        print(f"[INFO] Loading pre-processed dataset from {dataset_path}...")
-        train_dataset = load_dataset("json", data_files=dataset_path, split="train")
-    else:
-        print("[INFO] Local dataset not found. Fetching from Hugging Face...")
-        loader = SecretAiDatasetLoader(tokenizer)
-        train_dataset = loader.load_and_prepare(max_samples=2000)
+    def _load_train_dataset(self, tokenizer):
+        dataset_path = self.config.get("paths.refined_kb", "data/secret_ai_final_massive_dataset.jsonl")
+        
+        if os.path.exists(dataset_path):
+            print(f"[INFO] Loading pre-processed dataset from {dataset_path}...")
+            return load_dataset("json", data_files=dataset_path, split="train")
+        else:
+            print("[INFO] Local dataset not found. Fetching from Hugging Face...")
+            loader = SecretAiDatasetLoader(tokenizer)
+            # Default to a safe limit if local file is missing
+            return loader.load_and_prepare(max_samples=2000)
 
-    # 3. Trainer
-    trainer = SFTTrainer(
-        model = model,
-        tokenizer = tokenizer,
-        train_dataset = train_dataset,
-        dataset_text_field = "text",
-        max_seq_length = config_manager.get("training.max_seq_length", 2048),
-        dataset_num_proc = 2,
-        packing = False,
-        args = TrainingArguments(
-            per_device_train_batch_size = config_manager.get("training.batch_size", 2),
-            gradient_accumulation_steps = config_manager.get("training.grad_accum_steps", 4),
+    def train(self):
+        """
+        Executes the full training pipeline.
+        """
+        # 1. Initialize Model & Tokenizer
+        model, tokenizer = ModelFactory.create_model_and_tokenizer()
+
+        # 2. Prepare Dataset
+        train_dataset = self._load_train_dataset(tokenizer)
+
+        # 3. Configure Trainer
+        training_args = TrainingArguments(
+            per_device_train_batch_size = self.config.get("training.batch_size", 2),
+            gradient_accumulation_steps = self.config.get("training.grad_accum_steps", 4),
             warmup_steps = 5,
-            max_steps = config_manager.get("training.max_steps", 60),
-            learning_rate = config_manager.get("training.learning_rate", 2e-4),
+            max_steps = self.config.get("training.max_steps", 60),
+            learning_rate = self.config.get("training.learning_rate", 2e-4),
             fp16 = not is_bfloat16_supported(),
             bf16 = is_bfloat16_supported(),
             logging_steps = 1,
@@ -45,20 +53,36 @@ def main():
             weight_decay = 0.01,
             lr_scheduler_type = "linear",
             seed = 3407,
-            output_dir = config_manager.get("paths.output_models", "outputs"),
-        ),
-    )
+            output_dir = self.output_dir,
+            save_strategy = "no", # We save manually at the end
+        )
 
-    # 4. Train
-    print("[INFO] Starting training...")
+        trainer = SFTTrainer(
+            model = model,
+            tokenizer = tokenizer,
+            train_dataset = train_dataset,
+            dataset_text_field = "text",
+            max_seq_length = self.config.get("training.max_seq_length", 2048),
+            dataset_num_proc = 2,
+            packing = False,
+            args = training_args,
+        )
+
+        # 4. Execute Training
+        print("[INFO] Starting training...")
+        trainer_stats = trainer.train()
+        
+        # 5. Save Model and Tokenizer
+        print(f"[INFO] Saving model to {self.output_dir}...")
+        model.save_pretrained(self.output_dir)
+        tokenizer.save_pretrained(self.output_dir)
+        
+        print(f"[SUCCESS] Training completed in {trainer_stats.metrics['train_runtime']:.2f} seconds.")
+        print(f"[INFO] Weights saved to: {os.path.abspath(self.output_dir)}")
+
+def main():
+    trainer = SecretAiTrainer()
     trainer.train()
-    
-    # 5. Save
-    save_path = config_manager.get("paths.output_models", "secret_ai_lora")
-    print(f"[INFO] Saving model to {save_path}...")
-    model.save_pretrained(save_path)
-    tokenizer.save_pretrained(save_path)
-    print("[SUCCESS] Training completed and model saved.")
 
 if __name__ == "__main__":
     main()
