@@ -1,11 +1,6 @@
-try:
-    from unsloth import FastLanguageModel
-except ImportError:
-    FastLanguageModel = None
-
-from src.core.model_factory import ModelFactory
-from src.core.secret_ai_dataset_loader import SecretAiDatasetLoader
-from src.utils.config_manager import config_manager
+from src.core.ModelFactory import ModelFactory
+from src.core.SecretAiDatasetLoader import SecretAiDatasetLoader
+from src.utils.ConfigManager import config_manager
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
@@ -23,13 +18,13 @@ class SecretAiTrainer:
         self.output_dir = self.config.get("paths.output_models", "models/assistant")
 
     def _load_train_dataset(self, tokenizer):
-        dataset_path = self.config.get("paths.refined_kb", "data/refined_kb.json")
+        dataset_path = self.config.get("paths.training_final_dataset", "data/training/final_dataset.jsonl")
         
         if os.path.exists(dataset_path):
             print(f"[INFO] Loading pre-processed dataset from {dataset_path}...")
             return load_dataset("json", data_files=dataset_path, split="train")
         else:
-            print("[INFO] Local dataset not found. Fetching from Hugging Face...")
+            print("[INFO] Final dataset not found. Falling back to synthetic harvesting...")
             loader = SecretAiDatasetLoader(tokenizer)
             return loader.harvest_magicoder(limit=2000)
 

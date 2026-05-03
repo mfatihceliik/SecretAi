@@ -1,6 +1,6 @@
 import re
-from src.utils.language_config import language_config
-from src.utils.config_manager import config_manager
+from src.utils.LanguageConfig import language_config
+from src.utils.ConfigManager import config_manager
 from src.core.models import TrainingSample
 
 class DatasetProcessor:

@@ -1,6 +1,5 @@
-import sys
 import argparse
-from src.utils.config_manager import config_manager
+from src.utils.ConfigManager import config_manager
 
 class SecretAiApp:
     """
@@ -16,21 +15,27 @@ class SecretAiApp:
         parser.add_argument(
             "--mode", 
             type=str, 
-            choices=["index", "train", "chat", "harvest", "generate"], 
+            choices=["index", "train", "chat", "harvest", "process", "generate"], 
             default="chat",
-            help="Operation mode: index (RAG), train (LLM Fine-tune), chat (Interact), harvest (Scrape Docs), generate (Synth Dataset)"
+            help="Operation mode: index (RAG), train (LLM Fine-tune), chat (Interact), harvest (Collect), process (Clean/Refine), generate (Synth Dataset)"
         )
         return parser
 
     def run_index(self):
-        from src.core.rag_engine import RAGEngine
+        from src.core.RAGEngine import RAGEngine
         print("[INFO] Starting RAG indexing (CPU/GPU compatible)...")
         engine = RAGEngine()
         engine.index_knowledge_base()
 
+    def run_process(self):
+        from src.data.KnowledgeProcessor import KnowledgeProcessor
+        print("[INFO] Starting Knowledge Processing (Raw -> Processed -> Final)...")
+        processor = KnowledgeProcessor()
+        processor.process_all_domains()
+
     def run_train(self):
         try:
-            from src.training.secret_ai_trainer import SecretAiTrainer
+            from src.training.SecretAiTrainer import SecretAiTrainer
             print("[INFO] Starting Model Training (GPU REQUIRED)...")
             trainer = SecretAiTrainer()
             trainer.train()
@@ -44,7 +49,7 @@ class SecretAiApp:
     def run_chat(self):
         print("[INFO] Starting Assistant...")
         try:
-            from src.core.secret_assistant import SecretAssistant
+            from src.core.SecretAssistant import SecretAssistant
             bot = SecretAssistant()
             print("\n" + "="*50)
             print("SecretAi Assistant is ready. Type 'exit' to quit.")
@@ -61,13 +66,13 @@ class SecretAiApp:
             print("Tip: Ensure the model path in 'config/config.yaml' points to your fine-tuned weights.")
 
     def run_harvest(self):
-        from src.data.knowledge_harvester import KnowledgeHarvester
-        print("[INFO] Starting Knowledge Harvesting (Documentation Scraping)...")
-        harvester = KnowledgeHarvester()
-        harvester.run()
+        from src.data.HarvesterOrchestrator import HarvesterOrchestrator
+        print("[INFO] Starting Multi-Domain Knowledge Harvesting (HF & Docs)...")
+        orchestrator = HarvesterOrchestrator()
+        orchestrator.run_all()
 
     def run_generate(self):
-        from src.data.dataset_generator import DatasetGenerator
+        from src.data.DatasetGenerator import DatasetGenerator
         print("[INFO] Starting Dataset Generation (Stack v2 & Magicoder)...")
         generator = DatasetGenerator()
         generator.generate(mode="both")
@@ -83,6 +88,8 @@ class SecretAiApp:
             self.run_chat()
         elif args.mode == "harvest":
             self.run_harvest()
+        elif args.mode == "process":
+            self.run_process()
         elif args.mode == "generate":
             self.run_generate()
 

@@ -11,12 +11,7 @@ __pycache__/
 .pytest_cache/
 
 # Data & Models (Large Files)
-data/*.json
-data/*.jsonl
-data/*.csv
-data/stack_*.jsonl
-knowledge_base*.json
-chroma_db/
+data/
 models/
 outputs/
 secret_ai_lora/

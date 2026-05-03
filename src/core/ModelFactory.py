@@ -3,7 +3,8 @@ try:
 except ImportError:
     FastLanguageModel = None
 
-from src.utils.config_manager import config_manager
+from src.utils.ConfigManager import config_manager
+
 
 class ModelFactory:
     """

@@ -5,9 +5,17 @@ categories:
   secondary: "Android"
 
 paths:
-  raw_data: "data/raw_data.json"
-  refined_kb: "data/refined_kb.json"
-  chroma_db: "chroma_db"
+  # RAG hierarchical structure
+  rag_root: "data/rag"
+  rag_domains_root: "data/rag/domains"
+  rag_final_kb: "data/rag/final/final_kb.json"
+  rag_chroma_db: "data/rag/chroma_db"
+  
+  # Training related data
+  training_datasets_dir: "data/training/datasets"
+  training_final_dataset: "data/training/final_dataset.jsonl"
+  
+  # Model outputs
   output_models: "models/assistant"
   harvest_seeds: "config/harvest_seeds.yaml"
 
@@ -18,7 +26,7 @@ rag:
   n_results: 7
 
 training:
-  base_model: "unsloth/Llama-3.2-1B-bnb-4bit"
+  base_model: "unsloth/Llama-3.2-3B-bnb-4bit"
   max_seq_length: 2048
   lora_r: 32
   lora_alpha: 32
@@ -61,3 +69,40 @@ prompts:
   dataset:
     system: "You are a senior expert software engineer specializing in {lang_name}, mobile development (Android), and high-performance backend systems. You always follow SOLID principles and modern best practices."
     template: "### System:\n{system_prompt}\n\n### Instruction:\n{instruction}\n\n### Code:\n{code}\n\n### Response:\n"
+
+harvesting:
+  limits:
+    primary: 60
+    secondary: 30
+    default: 20
+
+huggingface:
+  domains:
+    kotlin:
+      - name: "m-a-p/CodeFeedback-Filtered-Instruction"
+        limit: 500
+        category: "Kotlin"
+      - name: "codeparrot/github-code-clean"
+        subset: "kotlin"
+        split: "train"
+        limit: 300
+        category: "Kotlin"
+    java:
+      - name: "m-a-p/CodeFeedback-Filtered-Instruction"
+        limit: 500
+        category: "Java"
+      - name: "codeparrot/github-code-clean"
+        subset: "java"
+        split: "train"
+        limit: 300
+        category: "Java"
+    python:
+      - name: "flytech/python-documentation-v2"
+        limit: 500
+        category: "Python"
+    javascript:
+      - name: "codeparrot/github-code-clean"
+        subset: "javascript"
+        split: "train"
+        limit: 300
+        category: "Javascript"

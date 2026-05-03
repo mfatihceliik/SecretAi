@@ -1,9 +1,9 @@
 from datasets import load_dataset, Dataset
 from typing import Optional
 from tqdm.auto import tqdm
-from .dataset_processor import DatasetProcessor
+from .DatasetProcessor import DatasetProcessor
 from .models import TrainingSample
-from src.utils.config_manager import config_manager
+from src.utils.ConfigManager import config_manager
 from dotenv import load_dotenv
 import os
 import boto3
@@ -57,10 +57,11 @@ class SecretAiDatasetLoader:
         print(f"--- SecretAi RESILIENT HARVESTER (Stack-v2) ---")
         
         max_workers = 10 
+        datasets_dir = self.config.get('paths.training_datasets_dir', 'data/training/datasets')
 
         for lang_cfg in languages:
             lang_name = lang_cfg["name"]
-            output_path = f"data/stack_{lang_name}.jsonl"
+            output_path = os.path.join(datasets_dir, f"stack_{lang_name}.jsonl")
             
             if os.path.exists(output_path):
                 print(f"[INFO] {lang_name} already exists, skipping: {output_path}")
@@ -118,14 +119,9 @@ class SecretAiDatasetLoader:
             for ex in magic_ds:
                 if len(all_samples) >= limit: break
                 
-                # Fetch system prompt and template for dataset logic if needed, 
-                # but Magicoder is usually instruction-response.
-                # Using our custom template for consistency:
                 instruction = ex['instruction']
                 response = ex['response']
                 
-                # We can wrap it in our standard format if we want, or keep it simple
-                # Here we just keep the instruction-response pair
                 sample = TrainingSample(text=f"### Instruction:\n{instruction}\n\n### Response:\n{response}")
                 
                 all_samples.append(sample.to_dict())

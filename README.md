@@ -15,30 +15,27 @@ The primary goal of SecretAi is to transform base LLMs (like Llama 3) into exper
 ## 📁 Project Structure
 
 ```text
-├── config/             # YAML configurations (config.yaml, harvest_seeds.yaml)
+├── config/             # YAML configurations
 ├── data/               # Local datasets & vector DB (Git-ignored)
+│   └── rag/
+│       └── domains/    # Hierarchical Raw/Processed data per domain
 ├── src/                # Implementation
 │   ├── core/           # Business Logic
-│   │   ├── models/           # Data Models (ScrapedPage, KnowledgeChunk, etc.)
-│   │   ├── secret_assistant.py # AI Interface
-│   │   ├── rag_engine.py       # RAG Search & Indexing
-│   │   ├── model_factory.py    # LLM Factory
-│   │   ├── secret_ai_dataset_loader.py # Data Loading
-│   │   └── dataset_processor.py # Filtering & Formatting
-│   ├── training/       # Training Logic
-│   │   └── secret_ai_trainer.py # Unsloth Fine-Tuning
+│   │   ├── models/     # Dataclasses
+│   │   ├── SecretAssistant.py # Hybrid RAG AI
+│   │   ├── RAGEngine.py       # Vector & Keyword Search
 │   ├── data/           # Data Engineering
-│   │   ├── knowledge_harvester.py # Doc Scraping
-│   │   ├── knowledge_processor.py # RAG Data Refinement
-│   │   └── dataset_generator.py   # Dataset Orchestration
-│   └── utils/          # Utilities (Config Management)
-├── main.py             # CLI Entry point
+│   │   ├── harvesters/ # Specialized Domain Harvesters (SOLID)
+│   │   ├── HarvesterOrchestrator.py # Multi-domain pipeline
+│   │   └── KnowledgeProcessor.py    # Deduplication & Cleaning
+│   └── training/       # Unsloth Training
+├── SecretAiApp.py      # Main CLI Entry point
 └── requirements.txt    # Project dependencies
 ```
 
 ## ⚙️ Configuration-First Workflow
 
-SecretAi is 100% configuration-driven. All parameters (LoRA targets, prompt templates, noise patterns, thresholds) are managed via `config/config.yaml`. No more hardcoded logic in the source code!
+SecretAi is 100% configuration-driven. All parameters (Hybrid search weights, LoRA targets, HF datasets, deduplication rules) are managed via `config/config.yaml`.
 
 ## 🚀 How to Start
 
@@ -48,12 +45,12 @@ SecretAi is 100% configuration-driven. All parameters (LoRA targets, prompt temp
    ```
 2. **Setup Environment**:
    Create a `.env` file with your `HF_TOKEN`.
-3. **Run the Application**:
-   - **Chat Mode**: `python main.py --mode chat`
-   - **Train Mode**: `python main.py --mode train`
-   - **Index Mode**: `python main.py --mode index`
-   - **Harvest Mode**: `python main.py --mode harvest`
-   - **Generate Mode**: `python main.py --mode generate`
+3. **Run the Pipeline**:
+   - **Harvest Data**: `python SecretAiApp.py --mode harvest`
+   - **Process & Dedup**: `python SecretAiApp.py --mode process`
+   - **Index to RAG**: `python SecretAiApp.py --mode index`
+   - **Chat with AI**: `python SecretAiApp.py --mode chat`
+   - **Train Model**: `python SecretAiApp.py --mode train`
 
 ---
 *Developed by M. Fatih Çelik as part of the SecretAi Research Initiative.*
